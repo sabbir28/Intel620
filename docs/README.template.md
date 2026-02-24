@@ -17,8 +17,8 @@ python -m pip install -e .[dev]
 ## Run
 
 ```bash
-python GPU.py
-python BootUp.py
+python cli.py
+python main.py
 ```
 
 ## Build Windows executables (PyInstaller)

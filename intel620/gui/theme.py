@@ -1,23 +1,31 @@
-BG = "#0a0e1a"
-BG2 = "#111827"
-BG3 = "#1a2235"
-BG4 = "#0d1420"
-ACCENT = "#0071c5"
-ACCENT2 = "#00a3e0"
-ACCENT_GLOW = "#0099ff"
-SUCCESS = "#00d4a0"
-WARNING = "#ffaa00"
-DANGER = "#ff4d6d"
-TEXT = "#e8edf5"
-TEXT2 = "#8a9ab5"
-TEXT3 = "#4a5568"
-BORDER = "#1e3050"
-CARD_BORDER = "#2a3f5f"
-BRIGHT_CLR = "#f0c040"
+# Windows XP–style classic color palette
 
-FONT_HEAD = ("Segoe UI", 11, "bold")
-FONT_BODY = ("Segoe UI", 9)
-FONT_SMALL = ("Segoe UI", 8)
-FONT_MONO = ("Consolas", 8)
-FONT_BIG = ("Segoe UI", 13, "bold")
-FONT_SEC = ("Segoe UI", 7, "bold")
+BG = "#ECE9D8"          # Classic XP window background
+BG2 = "#F3F3F3"         # Dialog background
+BG3 = "#D6DFF7"         # Pane / sidebar light blue
+BG4 = "#C7D3F2"         # Secondary panel background
+
+ACCENT = "#316AC5"      # XP title bar blue
+ACCENT2 = "#4F7FD7"     # Lighter selection blue
+ACCENT_GLOW = "#8DB2E3" # Hover / focus highlight
+
+SUCCESS = "#3C8D0D"     # XP-style green
+WARNING = "#E6A400"     # Muted amber
+DANGER = "#C00000"      # Classic red alert
+
+TEXT = "#000000"        # Primary text
+TEXT2 = "#3A3A3A"       # Secondary text
+TEXT3 = "#6D6D6D"       # Disabled / hint text
+
+BORDER = "#7F9DB9"      # XP control border
+CARD_BORDER = "#5A7EDC" # Group box / panel border
+
+BRIGHT_CLR = "#FFD966"  # Emphasis / highlight
+
+# Fonts aligned to XP-era UI
+FONT_HEAD = ("Tahoma", 11, "bold")
+FONT_BODY = ("Tahoma", 9)
+FONT_SMALL = ("Tahoma", 8)
+FONT_MONO = ("Courier New", 8)
+FONT_BIG = ("Tahoma", 13, "bold")
+FONT_SEC = ("Tahoma", 7, "bold")

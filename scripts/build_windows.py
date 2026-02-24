@@ -30,8 +30,8 @@ def main() -> int:
     if BUILD.exists():
         shutil.rmtree(BUILD)
 
-    run_pyinstaller("BootUp.py", "intel620-gui")
-    run_pyinstaller("GPU.py", "intel620-cli")
+    run_pyinstaller("main.py", "intel620-gui")
+    run_pyinstaller("cli.py", "intel620-cli")
 
     # keep only executable artifacts for release payload consistency
     spec_files = list(ROOT.glob("*.spec"))

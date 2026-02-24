@@ -2,7 +2,7 @@
 
 Production-grade Intel HD/UHD Graphics 620 toolkit with GUI and CLI utilities for Windows.
 
-> Released version: **0.1.0**  
+> Released version: **0.2.0**  
 > Release date: **2026-02-24**
 
 ## Install (development)
@@ -17,8 +17,8 @@ python -m pip install -e .[dev]
 ## Run
 
 ```bash
-python GPU.py
-python BootUp.py
+python cli.py
+python main.py
 ```
 
 ## Build Windows executables (PyInstaller)

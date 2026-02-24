@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "intel620"
-version = "0.1.0"
+version = "0.2.0"
 description = "Production-grade Intel 620 diagnostics and reporting toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary" }
 authors = [
-  { name = "Intel620 Engineering" }
+  { name = "MD. SABBIR HOSHEN HOWLADER" }
 ]
 keywords = ["intel", "graphics", "diagnostics", "windows"]
 classifiers = [
