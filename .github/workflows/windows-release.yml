@@ -1,0 +1,61 @@
+name: Build Windows Executables and Release
+
+on:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build GUI executable
+        run: pyinstaller --noconfirm --clean --onefile --name Intel620-GUI BootUp.py
+
+      - name: Build CLI executable
+        run: pyinstaller --noconfirm --clean --onefile --name Intel620-CLI GPU.py
+
+      - name: Generate auto version metadata
+        id: version
+        shell: bash
+        run: |
+          VERSION="v$(date -u +'%Y.%m.%d').${GITHUB_RUN_NUMBER}"
+          TAG="${VERSION}-${GITHUB_SHA::7}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Package release assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          Copy-Item dist/Intel620-GUI.exe release/
+          Copy-Item dist/Intel620-CLI.exe release/
+          Compress-Archive -Path release/* -DestinationPath Intel620-${{ steps.version.outputs.version }}-windows.zip -Force
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Intel620 ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/Intel620-GUI.exe
+            dist/Intel620-CLI.exe
+            Intel620-${{ steps.version.outputs.version }}-windows.zip
