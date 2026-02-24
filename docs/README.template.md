@@ -2,8 +2,8 @@
 
 Production-grade Python toolkit for Intel 620 diagnostics, display inspection, and reporting.
 
-> Released version: **0.1.0**  
-> Release date: **2026-02-24**
+> Released version: **{version}**  
+> Release date: **{date}**
 
 ## Installation
 
