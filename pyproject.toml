@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "intel620"
+version = "0.1.0"
+description = "Production-grade Intel 620 diagnostics and reporting toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [
+  { name = "Intel620 Engineering" }
+]
+keywords = ["intel", "graphics", "diagnostics", "windows"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: Other/Proprietary License",
+  "Operating System :: Microsoft :: Windows"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build==1.2.2.post1",
+  "coverage[toml]==7.6.12",
+  "mypy==1.15.0",
+  "pytest==8.3.5",
+  "pytest-cov==6.0.0",
+  "pyinstaller==6.12.0",
+  "ruff==0.9.10",
+  "sphinx==8.2.1",
+  "furo==2024.8.6",
+  "types-setuptools==75.8.2.20250305"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
+exclude = [
+  "^docs/",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config --cov=intel620 --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["intel620"]
+
+[tool.coverage.report]
+skip_covered = false
+show_missing = true
+fail_under = 70
+
+[tool.hatch.build.targets.wheel]
+packages = ["intel620"]

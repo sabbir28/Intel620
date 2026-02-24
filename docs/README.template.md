@@ -2,8 +2,8 @@
 
 Production-grade Intel HD/UHD Graphics 620 toolkit with GUI and CLI utilities for Windows.
 
-> Released version: **0.1.0**  
-> Release date: **2026-02-24**
+> Released version: **{version}**  
+> Release date: **{date}**
 
 ## Install (development)
 
