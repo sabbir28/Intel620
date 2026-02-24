@@ -11,14 +11,14 @@ Production-grade Intel HD/UHD Graphics 620 toolkit with GUI and CLI utilities fo
 python -m venv .venv
 . .venv/bin/activate  # Windows PowerShell: .\\.venv\\Scripts\\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -e .[dev]
+python -m pip install -r requirements-dev.txt
 ```
 
 ## Run
 
 ```bash
-python GPU.py
-python BootUp.py
+python cli.py
+python main.py
 ```
 
 ## Build Windows executables (PyInstaller)

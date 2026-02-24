@@ -18,8 +18,8 @@
 
 PyInstaller build script (`scripts/build_windows.py`) generates deterministic release-friendly executables:
 
-- `dist/intel620-cli.exe` (from `GPU.py`)
-- `dist/intel620-gui.exe` (from `BootUp.py`)
+- `dist/intel620-cli.exe` (from `cli.py`)
+- `dist/intel620-gui.exe` (from `main.py`)
 
 ## Determinism and Security
 
