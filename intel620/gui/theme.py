@@ -1,0 +1,23 @@
+BG = "#0a0e1a"
+BG2 = "#111827"
+BG3 = "#1a2235"
+BG4 = "#0d1420"
+ACCENT = "#0071c5"
+ACCENT2 = "#00a3e0"
+ACCENT_GLOW = "#0099ff"
+SUCCESS = "#00d4a0"
+WARNING = "#ffaa00"
+DANGER = "#ff4d6d"
+TEXT = "#e8edf5"
+TEXT2 = "#8a9ab5"
+TEXT3 = "#4a5568"
+BORDER = "#1e3050"
+CARD_BORDER = "#2a3f5f"
+BRIGHT_CLR = "#f0c040"
+
+FONT_HEAD = ("Segoe UI", 11, "bold")
+FONT_BODY = ("Segoe UI", 9)
+FONT_SMALL = ("Segoe UI", 8)
+FONT_MONO = ("Consolas", 8)
+FONT_BIG = ("Segoe UI", 13, "bold")
+FONT_SEC = ("Segoe UI", 7, "bold")
