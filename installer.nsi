@@ -1,22 +1,16 @@
 ; Intel620 NSIS installer
 ; Required defines from CI:
 ;   APP_DIR   - path to Nuitka standalone directory
-;   APP_EXE   - executable name inside APP_DIR
 ;   VERSION   - semantic version/tag label
 ;   OUT_FILE  - final installer file path
 
 Unicode true
 RequestExecutionLevel admin
-SetCompressor /SOLID lzma
 
 !include "MUI2.nsh"
 
 !ifndef APP_DIR
   !error "APP_DIR define is required"
-!endif
-
-!ifndef APP_EXE
-  !error "APP_EXE define is required"
 !endif
 
 !ifndef VERSION
@@ -68,8 +62,8 @@ Section "Install" SecInstall
   WriteRegDWORD HKLM "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${APP_NAME}" "NoRepair" 1
 
   CreateDirectory "$SMPROGRAMS\\${APP_NAME}"
-  CreateShortcut "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk" "$INSTDIR\\${APP_EXE}"
-  CreateShortcut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\${APP_EXE}"
+  CreateShortcut "$SMPROGRAMS\\${APP_NAME}\\${APP_NAME}.lnk" "$INSTDIR\\main.exe"
+  CreateShortcut "$DESKTOP\\${APP_NAME}.lnk" "$INSTDIR\\main.exe"
   CreateShortcut "$SMPROGRAMS\\${APP_NAME}\\Uninstall ${APP_NAME}.lnk" "$INSTDIR\\Uninstall.exe"
 
   WriteUninstaller "$INSTDIR\\Uninstall.exe"

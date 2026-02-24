@@ -8,15 +8,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
-env:
-  PYTHON_VERSION: '3.11'
-  APP_NAME: Intel620
-  ENTRY_SCRIPT: main.py
-
 jobs:
   build-release:
     runs-on: windows-latest
@@ -24,20 +15,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: requirements.txt
+          python-version: '3.11'
 
       - name: Install build dependencies
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
           pip install nuitka ordered-set zstandard
@@ -45,8 +31,7 @@ jobs:
       - name: Build portable onefile executable (Nuitka)
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          python -m nuitka ${{ env.ENTRY_SCRIPT }} `
+          python -m nuitka main.py `
             --standalone `
             --onefile `
             --follow-imports `
@@ -57,14 +42,13 @@ jobs:
             --python-flag=-O `
             --python-flag=no_site `
             --output-dir=build/portable `
-            --output-filename=${{ env.APP_NAME }}-portable.exe `
+            --output-filename=Intel620-portable.exe `
             --remove-output
 
       - name: Build normal standalone directory (Nuitka)
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          python -m nuitka ${{ env.ENTRY_SCRIPT }} `
+          python -m nuitka main.py `
             --standalone `
             --follow-imports `
             --assume-yes-for-downloads `
@@ -74,26 +58,19 @@ jobs:
             --python-flag=-O `
             --python-flag=no_site `
             --output-dir=build/normal `
-            --output-filename=${{ env.APP_NAME }}.exe `
             --remove-output
 
-      - name: Package artifacts and strip symbols where available
+      - name: Strip symbols where available
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force artifacts | Out-Null
 
-          $portableExe = Resolve-Path "build/portable/${{ env.APP_NAME }}-portable.exe"
-          Copy-Item $portableExe "artifacts/${{ env.APP_NAME }}-portable.exe" -Force
+          $portableExe = Resolve-Path 'build/portable/Intel620-portable.exe'
+          Copy-Item $portableExe artifacts/Intel620-portable.exe -Force
 
           $standaloneDir = Get-ChildItem build/normal -Directory | Where-Object { $_.Name -like '*.dist' } | Select-Object -First 1
           if (-not $standaloneDir) {
             throw 'Nuitka standalone output directory (*.dist) was not found.'
-          }
-
-          $appExe = Join-Path $standaloneDir.FullName "${{ env.APP_NAME }}.exe"
-          if (-not (Test-Path $appExe)) {
-            throw "Expected application executable not found: $appExe"
           }
 
           $stripTool = $null
@@ -104,75 +81,50 @@ jobs:
           }
 
           if ($stripTool) {
-            & $stripTool "artifacts/${{ env.APP_NAME }}-portable.exe"
+            & $stripTool artifacts/Intel620-portable.exe
             Get-ChildItem $standaloneDir.FullName -Filter *.exe -Recurse | ForEach-Object { & $stripTool $_.FullName }
             Get-ChildItem $standaloneDir.FullName -Filter *.dll -Recurse | ForEach-Object { & $stripTool $_.FullName }
           } else {
             Write-Host 'No strip utility found; continuing without symbol stripping.'
           }
 
-          Compress-Archive -Path "$($standaloneDir.FullName)\*" -DestinationPath "artifacts/${{ env.APP_NAME }}-standalone.zip" -Force
+          Compress-Archive -Path "$($standaloneDir.FullName)\*" -DestinationPath artifacts/Intel620-standalone.zip -Force
 
       - name: Install NSIS
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
           choco install nsis -y --no-progress
 
       - name: Build NSIS installer
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
           $version = "${{ github.ref_name }}"
           $standaloneDir = Get-ChildItem build/normal -Directory | Where-Object { $_.Name -like '*.dist' } | Select-Object -First 1
           if (-not $standaloneDir) {
             throw 'Nuitka standalone output directory (*.dist) was not found.'
           }
 
-          $outFile = "$PWD\artifacts\${{ env.APP_NAME }}-setup-$version.exe"
           & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" `
             /DAPP_DIR="$($standaloneDir.FullName)" `
-            /DAPP_EXE="${{ env.APP_NAME }}.exe" `
             /DVERSION="$version" `
-            /DOUT_FILE="$outFile" `
+            /DOUT_FILE="$PWD\artifacts\Intel620-setup-$version.exe" `
             installer.nsi
 
       - name: Generate SHA-256 checksums
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          $checksumFile = 'artifacts/SHA256SUMS.txt'
-          if (Test-Path $checksumFile) { Remove-Item $checksumFile -Force }
-          Get-ChildItem artifacts -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | ForEach-Object {
+          Get-ChildItem artifacts -File | ForEach-Object {
             $hash = Get-FileHash $_.FullName -Algorithm SHA256
-            "$($hash.Hash.ToLower()) *$($_.Name)" | Out-File -Append -Encoding ascii $checksumFile
-          }
-
-      - name: Validate release assets
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $required = @(
-            "artifacts/${{ env.APP_NAME }}-portable.exe",
-            "artifacts/${{ env.APP_NAME }}-standalone.zip",
-            "artifacts/${{ env.APP_NAME }}-setup-${{ github.ref_name }}.exe",
-            'artifacts/SHA256SUMS.txt'
-          )
-
-          foreach ($path in $required) {
-            if (-not (Test-Path $path)) {
-              throw "Missing expected artifact: $path"
-            }
+            "$($hash.Hash.ToLower()) *$($_.Name)" | Out-File -Append -Encoding ascii artifacts/SHA256SUMS.txt
           }
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ github.ref_name }}
           files: |
             artifacts/Intel620-portable.exe
             artifacts/Intel620-standalone.zip
-            artifacts/Intel620-setup-${{ github.ref_name }}.exe
+            artifacts/Intel620-setup-*.exe
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
           fail_on_unmatched_files: true
