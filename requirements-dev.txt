@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# Developer tooling
+build==1.2.2.post1
+coverage[toml]==7.6.12
+mypy==1.15.0
+pytest==8.3.5
+pytest-cov==6.0.0
+pyinstaller==6.12.0
+ruff==0.9.10
+sphinx==8.2.1
+furo==2024.8.6
+types-setuptools==75.8.2.20250305
