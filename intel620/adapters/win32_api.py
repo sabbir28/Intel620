@@ -1,4 +1,5 @@
-from ctypes import byref, sizeof, windll
+from ctypes import byref, sizeof
+import ctypes
 
 from intel620.models.win32_structures import (
     BITSPIXEL,
@@ -25,8 +26,10 @@ from intel620.models.win32_structures import (
 
 class Win32DisplayAdapter:
     def __init__(self):
-        self.user32 = windll.user32
-        self.gdi32 = windll.gdi32
+        if not hasattr(ctypes, "windll"):
+            raise OSError("Win32 APIs are unavailable on this platform")
+        self.user32 = ctypes.windll.user32
+        self.gdi32 = ctypes.windll.gdi32
 
     def enum_display_devices(self, parent_name, index):
         dev = DISPLAY_DEVICEW()

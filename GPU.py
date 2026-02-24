@@ -1,12 +1,15 @@
-"""Intel HD/UHD Graphics 620 - Display Information Query Tool."""
+"""Intel HD/UHD Graphics 620 - Display Information Query and Graphics Refresh Tool."""
 
+import argparse
 import platform
 import sys
 
 from intel620.reporting.report_writer import ReportWriter
+from intel620.services.color_service import ColorConfigurationService
 from intel620.services.display_service import DisplayService
 from intel620.services.dll_service import IntelDllService
 from intel620.services.dxgi_service import DxgiService
+from intel620.services.graphics_service import GraphicsLifecycleService
 
 
 def print_display_info(devices, display_service):
@@ -26,6 +29,7 @@ def print_display_info(devices, display_service):
         print(f"  Device ID    : {dev['device_id'][:80]}")
         print(f"  Active       : {'Yes' if dev['is_active'] else 'No'}")
         print(f"  Primary      : {'Yes' if dev['is_primary'] else 'No'}")
+        print(f"  Role         : {dev['role']}")
 
         if dev["current_mode"]:
             mode = dev["current_mode"]
@@ -55,12 +59,26 @@ def print_display_info(devices, display_service):
 
         total_modes = len(dev["supported_modes"])
         if total_modes:
-            max_res = max(dev["supported_modes"], key=lambda x: x["width_px"] * x["height_px"], default=dev["supported_modes"][-1])
+            max_res = max(
+                dev["supported_modes"],
+                key=lambda x: x["width_px"] * x["height_px"],
+                default=dev["supported_modes"][-1],
+            )
             print(f"\n  Supported Modes : {total_modes} total")
             print(f"  Highest Res Mode: {max_res['resolution']} @ {max_res['refresh_rate']}Hz")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Intel display and graphics inspection utility")
+    parser.add_argument("--reset-graphics", action="store_true", help="Trigger safe graphics refresh and driver reinit")
+    parser.add_argument("--theme", choices=["light", "dark", "auto"], help="Runtime UI theme value")
+    parser.add_argument("--color-depth", type=int, choices=[24, 30, 32], help="Requested color depth in bits per pixel")
+    parser.add_argument("--profile", choices=["srgb", "dcip3", "adobergb"], help="Requested color profile")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     if platform.system() != "Windows":
         print("[ERROR] This script must be run on Windows with Intel drivers installed.")
         sys.exit(1)
@@ -73,6 +91,8 @@ def main():
     display_service = DisplayService()
     dll_service = IntelDllService()
     dxgi_service = DxgiService()
+    graphics_service = GraphicsLifecycleService(display_service)
+    color_service = ColorConfigurationService(display_service)
     report_writer = ReportWriter()
 
     dll_status = dll_service.print_load_status()
@@ -86,6 +106,18 @@ def main():
 
     devices = display_service.enumerate_display_devices()
     print_display_info(devices, display_service)
+
+    if args.reset_graphics:
+        reset_result = graphics_service.manual_reset()
+        print("\n[Graphics Reset]", reset_result.message)
+
+    if args.theme or args.color_depth or args.profile:
+        color_result = color_service.apply_runtime_config(
+            theme=args.theme,
+            color_depth_bpp=args.color_depth,
+            profile=args.profile,
+        )
+        print("\n[Color Configuration]", color_result)
 
     out_path = report_writer.save_report(devices, dll_status)
     print(f"\n  [✅] Full JSON report saved → {out_path}")
