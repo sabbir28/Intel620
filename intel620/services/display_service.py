@@ -1,4 +1,8 @@
 import ctypes
+import logging
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
 from intel620.adapters.win32_api import Win32DisplayAdapter
 from intel620.models.win32_structures import (
     DEVMODEW,
@@ -12,8 +16,19 @@ from intel620.models.win32_structures import (
     DISP_CHANGE_SUCCESSFUL,
 )
 
+logger = logging.getLogger(__name__)
 
 ORIENTATIONS = ["Landscape", "Portrait", "Landscape Flipped", "Portrait Flipped"]
+
+
+@dataclass(frozen=True)
+class DisplayDetectionResult:
+    device_name: str
+    adapter_label: str
+    is_primary: bool
+    is_active: bool
+    resolution: Tuple[int, int]
+    refresh_rate_hz: int
 
 
 class DisplayService:
@@ -42,6 +57,45 @@ class DisplayService:
             idx += 1
         return adapters
 
+    def detect_displays(self) -> Dict[str, object]:
+        """Return primary/secondary display information with mode details."""
+        detected: List[DisplayDetectionResult] = []
+        for adapter in self.get_all_adapters():
+            mode = self.get_current_mode(adapter["name"])
+            if mode:
+                resolution = (int(mode.dmPelsWidth), int(mode.dmPelsHeight))
+                refresh_hz = int(mode.dmDisplayFrequency)
+            else:
+                resolution = (0, 0)
+                refresh_hz = 0
+
+            detected.append(
+                DisplayDetectionResult(
+                    device_name=adapter["name"],
+                    adapter_label=adapter["string"],
+                    is_primary=adapter["is_primary"],
+                    is_active=adapter["is_active"],
+                    resolution=resolution,
+                    refresh_rate_hz=refresh_hz,
+                )
+            )
+
+        primary = next((d for d in detected if d.is_primary), None)
+        secondaries = [d for d in detected if not d.is_primary]
+        logger.info(
+            "Detected displays: total=%s active=%s primary=%s",
+            len(detected),
+            sum(1 for d in detected if d.is_active),
+            primary.device_name if primary else "none",
+        )
+
+        return {
+            "primary": primary,
+            "secondary": secondaries,
+            "all": detected,
+            "active_count": sum(1 for d in detected if d.is_active),
+        }
+
     def get_monitors_for(self, device_name):
         monitors, idx = [], 0
         while True:
@@ -69,14 +123,14 @@ class DisplayService:
             if not ok:
                 break
             key = (dm.dmPelsWidth, dm.dmPelsHeight, dm.dmDisplayFrequency)
-            if key not in seen and dm.dmBitsPerPel == 32:
+            if key not in seen and dm.dmBitsPerPel in (24, 30, 32):
                 seen.add(key)
-                modes.append((dm.dmPelsWidth, dm.dmPelsHeight, dm.dmDisplayFrequency))
+                modes.append((dm.dmPelsWidth, dm.dmPelsHeight, dm.dmDisplayFrequency, dm.dmBitsPerPel))
             idx += 1
         return sorted(modes, key=lambda m: m[0] * m[1], reverse=True)
 
-    def enable_display(self, device_name, pos_x, pos_y, width, height, freq=60):
-        dm = self._build_mode(width, height, freq, pos_x, pos_y)
+    def enable_display(self, device_name, pos_x, pos_y, width, height, freq=60, color_depth=32):
+        dm = self._build_mode(width, height, freq, pos_x, pos_y, color_depth=color_depth)
         return self.api.apply_mode(device_name, dm, test_first=True, include_global=True)
 
     def disable_display(self, device_name):
@@ -100,6 +154,7 @@ class DisplayService:
                 "device_key": adapter["device_key"],
                 "is_active": adapter["is_active"],
                 "is_primary": adapter["is_primary"],
+                "role": "primary" if adapter["is_primary"] else "secondary",
                 "monitors": [],
                 "current_mode": None,
                 "supported_modes": [],
@@ -111,13 +166,21 @@ class DisplayService:
                     "width_px": dm.dmPelsWidth,
                     "height_px": dm.dmPelsHeight,
                     "refresh_rate": f"{dm.dmDisplayFrequency} Hz",
+                    "refresh_rate_hz": dm.dmDisplayFrequency,
                     "color_depth": f"{dm.dmBitsPerPel} bpp",
+                    "color_depth_bpp": dm.dmBitsPerPel,
                     "position": f"({dm.dmPositionX}, {dm.dmPositionY})",
                     "orientation": ORIENTATIONS[dm.dmDisplayOrientation] if dm.dmDisplayOrientation < 4 else "Unknown",
                 }
             item["supported_modes"] = [
-                {"resolution": f"{w}x{h}", "refresh_rate": hz, "color_depth": 32, "width_px": w, "height_px": h}
-                for w, h, hz in self.get_supported_modes(adapter["name"])
+                {
+                    "resolution": f"{w}x{h}",
+                    "refresh_rate": hz,
+                    "color_depth": bpp,
+                    "width_px": w,
+                    "height_px": h,
+                }
+                for w, h, hz, bpp in self.get_supported_modes(adapter["name"])
             ]
             for index, mon in enumerate(self.get_monitors_for(adapter["name"])):
                 item["monitors"].append(
@@ -132,7 +195,7 @@ class DisplayService:
             devices.append(item)
         return devices
 
-    def _build_mode(self, width, height, freq, pos_x, pos_y, disable=False):
+    def _build_mode(self, width, height, freq, pos_x, pos_y, disable=False, color_depth=32):
         dm = DEVMODEW()
         dm.dmSize = ctypes.sizeof(DEVMODEW)
         dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_POSITION
@@ -142,7 +205,7 @@ class DisplayService:
         dm.dmPositionY = pos_y
         if not disable:
             dm.dmFields |= DM_BITSPERPEL | DM_DISPLAYFREQUENCY
-            dm.dmBitsPerPel = 32
+            dm.dmBitsPerPel = color_depth
             dm.dmDisplayFrequency = freq
         return dm
 
