@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Release quality gates
+        run: |
+          . .venv/bin/activate
+          ruff check .
+          mypy intel620 tests
+          pytest
+
+      - name: Prepare release
+        id: prepare
+        run: |
+          . .venv/bin/activate
+          python scripts/release/prepare_release.py --github-output "$GITHUB_OUTPUT"
+
+      - name: Stop if no release commit found
+        if: steps.prepare.outputs.release_created != 'true'
+        run: echo "No releasable commits; exiting without tag/release."
+
+      - name: Build docs
+        if: steps.prepare.outputs.release_created == 'true'
+        run: |
+          . .venv/bin/activate
+          sphinx-build -b html docs/source docs/build/html
+
+      - name: Build distribution artifacts
+        if: steps.prepare.outputs.release_created == 'true'
+        run: |
+          . .venv/bin/activate
+          python -m build
+
+      - name: Commit release artifacts
+        if: steps.prepare.outputs.release_created == 'true'
+        env:
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml CHANGELOG.md README.md
+          git commit -m "chore(release): v${VERSION} [skip ci]"
+          git push origin HEAD:main
+
+      - name: Create annotated tag
+        if: steps.prepare.outputs.release_created == 'true'
+        env:
+          TAG: ${{ steps.prepare.outputs.tag }}
+        run: |
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        if: steps.prepare.outputs.release_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.prepare.outputs.tag }}
+        run: |
+          awk -v tag="$TAG" '
+            $0 ~ "^## " tag " - " {flag=1}
+            flag && /^## v/ && $0 !~ "^## " tag " - " {exit}
+            flag {print}
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          gh release create "$TAG" --title "$TAG" --notes-file RELEASE_NOTES.md dist/*
+
+      - name: Publish to PyPI (optional)
+        if: steps.prepare.outputs.release_created == 'true' && vars.PUBLISH_TO_PYPI == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
