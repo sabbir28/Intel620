@@ -103,6 +103,7 @@ class IntelDisplayPanel(tk.Tk):
         self._tab_container.pack(fill=tk.BOTH, expand=True)
         self._build_displays_tab()
         self._build_brightness_tab()
+        self._build_quect_tools_tab()
         self._build_about_tab()
         self._build_statusbar()
         self._show_tab("displays")
@@ -144,6 +145,7 @@ class IntelDisplayPanel(tk.Tk):
         self._nav_btns = {}
         for key, label in [("displays","⊞  Displays"),
                             ("brightness","☀  Brightness"),
+                            ("quect_tools","🧰  Quect Tools"),
                             ("about","ℹ  About & System Info")]:
             btn = tk.Label(nav, text=label, font=("Segoe UI",9,"bold"),
                            bg=BG2, fg=TEXT2, padx=18, pady=9, cursor="hand2")
@@ -476,6 +478,73 @@ class IntelDisplayPanel(tk.Tk):
     def _preset_brightness(self, val):
         self._global_bright_var.set(val)
         self._apply_global_brightness()
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 3 — QUECT TOOLS
+    # ══════════════════════════════════════════════════════════════════════════
+    def _build_quect_tools_tab(self):
+        frame = tk.Frame(self._tab_container, bg=BG)
+        self._tabs["quect_tools"] = frame
+
+        tk.Label(frame, text="Quect Tools", font=FONT_BIG, bg=BG, fg=TEXT
+                 ).pack(anchor="w", padx=24, pady=(18, 6))
+        tk.Label(frame,
+                 text="Starter area for your next tools. Click buttons now, wire logic later.",
+                 font=FONT_BODY, bg=BG, fg=TEXT2).pack(anchor="w", padx=24, pady=(0, 14))
+
+        content = tk.Frame(frame, bg=BG)
+        content.pack(fill=tk.BOTH, expand=True, padx=24, pady=(0, 20))
+
+        left = tk.Frame(content, bg=BG3, padx=16, pady=16)
+        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+
+        tk.Label(left, text="Quick Buttons", font=FONT_SEC, bg=BG3, fg=TEXT3
+                 ).pack(anchor="w", pady=(0, 8))
+
+        button_specs = [
+            ("🔄  Rifresh", ACCENT),
+            ("➕  Add Tool", "#1a4a7a"),
+            ("🧪  Run Test Tool", "#2a3a1a"),
+            ("📦  Export Config", "#4a3800"),
+        ]
+        for label, color in button_specs:
+            self._make_btn(
+                left,
+                label,
+                color,
+                "white",
+                lambda n=label: self._set_status(f"{n} clicked — TODO: implement action."),
+            ).pack(fill=tk.X, pady=4)
+
+        right = tk.Frame(content, bg=BG2, width=330)
+        right.pack(side=tk.RIGHT, fill=tk.Y)
+        right.pack_propagate(False)
+
+        tk.Label(right, text="TODO", font=FONT_SEC, bg=BG2, fg=TEXT3
+                 ).pack(anchor="w", padx=16, pady=(16, 8))
+        todo_text = tk.Text(
+            right,
+            bg=BG3,
+            fg=TEXT,
+            font=FONT_BODY,
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            wrap=tk.WORD,
+            height=16,
+        )
+        todo_text.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 10))
+        todo_text.insert(
+            "1.0",
+            "TODO:\n"
+            "- Implement tool action handlers\n"
+            "- Connect buttons to services\n"
+            "- Add validation and logs\n"
+            "- Save and load user presets\n"
+            "\n"
+            "(You can edit this list directly.)",
+        )
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 3 — ABOUT
@@ -988,6 +1057,9 @@ class IntelDisplayPanel(tk.Tk):
         self._log_text.insert(tk.END, f"[{ts}] {msg}\n")
         self._log_text.see(tk.END)
         self._log_text.config(state=tk.DISABLED)
+
+    def _set_status(self, msg):
+        self._status_var.set(msg)
 
     def _build_statusbar(self):
         bar = tk.Frame(self, bg=BG2, height=26)
